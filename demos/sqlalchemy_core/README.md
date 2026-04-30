@@ -144,7 +144,7 @@ Show the SQL that SQLAlchemy generates from the Python expressions:
 python sqlalchemy_demo.py --echo
 ```
 
-Non-invasive connectivity check (no DDL, no inserts):
+Non-invasive connectivity check (no DDL, no inserts) against MS SQL database (e.g. Azure MI SQL):
 
 ```bash
 python sqlalchemy_demo.py --backend mssql --probe
