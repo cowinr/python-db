@@ -8,6 +8,7 @@ A collection of Python database connectivity demos, from local SQLite through to
 python-db/
 ├── demos/
 │   ├── sqlite_local/        — stdlib sqlite3, no dependencies, no server
+│   ├── sqlalchemy_core/     — SQLAlchemy Core 2.0, backend-agnostic (SQLite / Postgres / MySQL)
 │   └── azure_sql_mi/        — pyodbc + Microsoft Entra / SQL auth against Azure SQL MI
 ├── shared/
 │   └── runner.py            — shared output utilities (print_table, report_result)
@@ -28,6 +29,23 @@ python demos/sqlite_local/sqlite_demo.py --db-path :memory:
 ```
 
 See `demos/sqlite_local/README.md` for full details.
+
+### SQLAlchemy Core (backend-agnostic)
+
+Path: `demos/sqlalchemy_core/`
+
+Demonstrates the same operations as the SQLite demo, but through SQLAlchemy Core 2.0. The same Python code can target SQLite, PostgreSQL, or MySQL/MariaDB by changing only the connection URL.
+
+```bash
+python demos/sqlalchemy_core/sqlalchemy_demo.py
+python demos/sqlalchemy_core/sqlalchemy_demo.py --backend sqlite --memory
+python demos/sqlalchemy_core/sqlalchemy_demo.py --echo
+
+export DATABASE_URL="postgresql+psycopg2://user:pw@host/db"
+python demos/sqlalchemy_core/sqlalchemy_demo.py --backend postgres
+```
+
+See `demos/sqlalchemy_core/README.md` for full details.
 
 ### Azure SQL Managed Instance
 

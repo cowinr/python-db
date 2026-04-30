@@ -1,1 +1,9 @@
+# Azure SQL MI demo (demos/azure_sql_mi)
 pyodbc>=4.0
+
+# SQLAlchemy Core demo (demos/sqlalchemy_core)
+sqlalchemy>=2.0,<3.0
+
+# Optional backend drivers for the SQLAlchemy Core demo
+psycopg2-binary>=2.9    # PostgreSQL
+pymysql>=1.1            # MySQL / MariaDB
