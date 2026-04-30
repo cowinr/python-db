@@ -9,3 +9,7 @@ sqlalchemy>=2.0,<3.0
 # Optional backend drivers for the SQLAlchemy Core demo
 psycopg2-binary>=2.9    # PostgreSQL
 pymysql>=1.1            # MySQL / MariaDB
+
+# Check installed versions like this:
+# ❯ pip show sqlalchemy | grep Version
+#   Version: 2.0.49
