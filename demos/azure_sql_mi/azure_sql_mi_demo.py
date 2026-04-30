@@ -1,7 +1,7 @@
 """
-db_connect_test.py
-==================
-Verifies connectivity to the Azure SQL Managed Instance.
+azure_sql_mi_demo.py
+====================
+Verifies connectivity to an Azure SQL Managed Instance.
 
 Connects using one of two authentication modes, runs ``SELECT @@VERSION``
 and ``SELECT 1 AS ping``, then prints the results to confirm the connection
@@ -10,7 +10,7 @@ is working.
 Authentication modes
 --------------------
   integrated (default)
-      Microsoft Entra Integrated / Active Directory Integrated.  No
+      Microsoft Entra Integrated / Active Directory Integrated. No
       credentials are stored; the current user's Entra session is used.
 
   sql
@@ -21,27 +21,38 @@ Prerequisites
 -------------
   - ODBC Driver for SQL Server installed on the host (default: ODBC Driver 17;
     override via ``ODBC_DRIVER`` in config.py).
-  - ``config.py`` present in the same directory (copy config.example.py and
+  - ``config.py`` present in this directory (copy config.example.py and
     fill in SERVER and DATABASE).
   - For integrated auth: the signed-in Entra account must have at least
     ``db_datareader`` or ``CONNECT`` permission on the target database.
 
 Usage
 -----
-  python db_connect_test.py
-  python db_connect_test.py --auth sql
+    python azure_sql_mi_demo.py
+    python azure_sql_mi_demo.py --auth sql
 """
 
 from __future__ import annotations
 
 import argparse
 import getpass
+import logging
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from shared.runner import print_table, report_result
 
 import pyodbc
 
 from defaults import *  # noqa: F401,F403 — intentional wildcard import for config layering
 from config import *    # noqa: F401,F403
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+)
+log = logging.getLogger(__name__)
 
 
 def _build_conn_str(auth: str, username: str | None, password: str | None) -> str:
@@ -75,26 +86,24 @@ def main() -> None:
         password = getpass.getpass("SQL password: ")
 
     conn_str = _build_conn_str(args.auth, username, password)
-
-    print(f"Connecting to {SERVER} / {DATABASE} using {args.auth} auth…")
+    log.info("Connecting to %s / %s using %s auth…", SERVER, DATABASE, args.auth)
 
     try:
         with pyodbc.connect(conn_str, timeout=15) as conn:
             cursor = conn.cursor()
 
             cursor.execute("SELECT @@VERSION AS server_version;")
-            row = cursor.fetchone()
-            print("\nServer version:")
-            print(f"  {row.server_version}\n")
+            version_rows = cursor.fetchall()
+            print_table(version_rows, ["server_version"], col_width=60)
 
             cursor.execute("SELECT 1 AS ping;")
-            row = cursor.fetchone()
-            print(f"Ping result: {row.ping}")
+            ping_rows = cursor.fetchall()
+            print_table(ping_rows, ["ping"])
 
-        print("\nConnection test PASSED.")
+        report_result("Connection test", passed=True)
 
     except pyodbc.Error as exc:
-        print(f"\nConnection test FAILED: {exc}", file=sys.stderr)
+        report_result("Connection test", passed=False, detail=str(exc))
         sys.exit(1)
 
 

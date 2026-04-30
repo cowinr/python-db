@@ -1,63 +1,60 @@
-# DB Connectivity Test
+# python-db
 
-A minimal script to verify connectivity to the Azure SQL Managed Instance before running the full extract pipeline.
+A collection of Python database connectivity demos, from local SQLite through to cloud-authenticated Azure SQL Managed Instance. Each demo is self-contained and can be run independently.
 
-## What it does
-
-Connects to the target database and runs two queries:
-
-- `SELECT @@VERSION` — confirms the server is reachable and returns its version string
-- `SELECT 1 AS ping` — confirms a result set can be returned
-
-Exits with code `0` on success, `1` on failure.
-
-## Prerequisites
-
-- ODBC Driver for SQL Server installed on the host machine (default: ODBC Driver 17)
-- `config.py` present in this directory (see setup below)
-- For integrated auth: your Entra account must have at least `CONNECT` permission on the target database
-
-## Setup
-
-1. Copy the example config and fill in your details:
-
-   ```
-   cp config.example.py config.py
-   ```
-
-2. Edit `config.py` with the correct `SERVER` and `DATABASE` values. This file is gitignored and must never be committed.
-
-3. Install the dependency:
-
-   ```
-   python -m pip install -r requirements.txt
-   ```
-
-## Usage
-
-**Integrated (Entra) authentication — default:**
+## Structure
 
 ```
-python db_connect_test.py
+python-db/
+├── demos/
+│   ├── sqlite_local/        — stdlib sqlite3, no dependencies, no server
+│   └── azure_sql_mi/        — pyodbc + Microsoft Entra / SQL auth against Azure SQL MI
+├── shared/
+│   └── runner.py            — shared output utilities (print_table, report_result)
+└── requirements.txt         — top-level dependency list
 ```
 
-**SQL Server username/password:**
+## Demos
 
+### SQLite (local)
+
+Path: `demos/sqlite_local/`
+
+No install beyond Python itself. Creates a local `.db` file, defines a schema, inserts rows, and queries them back. The simplest possible baseline.
+
+```bash
+python demos/sqlite_local/sqlite_demo.py
+python demos/sqlite_local/sqlite_demo.py --db-path :memory:
 ```
-python db_connect_test.py --auth sql
+
+See `demos/sqlite_local/README.md` for full details.
+
+### Azure SQL Managed Instance
+
+Path: `demos/azure_sql_mi/`
+
+Connects to an Azure SQL MI using Microsoft Entra Integrated auth (default) or SQL username/password, then runs a version check and a ping query.
+
+```bash
+python demos/azure_sql_mi/azure_sql_mi_demo.py
+python demos/azure_sql_mi/azure_sql_mi_demo.py --auth sql
 ```
 
-You will be prompted for credentials at runtime; nothing is stored.
+Requires `config.py` in the demo directory (copy from `config.example.py`). See `demos/azure_sql_mi/` for full setup notes.
 
-## Output
+## Shared Utilities
 
+`shared/runner.py` provides two functions used by all demos:
+
+- `print_table(rows, headers)` — formats query results as a plain-text table
+- `report_result(label, passed, detail)` — logs a standardised PASSED / FAILED line
+
+Each demo adds the repo root to `sys.path` so the import resolves regardless of which directory you run from.
+
+## Dependencies
+
+```bash
+pip install -r requirements.txt
 ```
-Connecting to your-instance.xxx.database.windows.net / your_db using integrated auth…
 
-Server version:
-  Microsoft SQL Server 2019 (RTM-CU…) …
-
-Ping result: 1
-
-Connection test PASSED.
-```
+The SQLite demo has no third-party dependencies. `requirements.txt` covers the Azure SQL MI demo.
