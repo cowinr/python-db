@@ -81,6 +81,22 @@ When adding a new demo, preserve these:
 - Pull credentials from environment variables or a gitignored `config.py`, never hardcode
 - Use parameterised queries everywhere (driver-level `?` for raw drivers, expression language for SQLAlchemy)
 
+## Security checks
+
+Before sharing any demo, run the four-check pre-share gate prescribed by the `dev-standards:hansard-python` skill:
+
+```bash
+uvx ruff check .
+uvx bandit -r demos/<name>/
+uvx detect-secrets scan --baseline .secrets.baseline
+uvx pip-audit
+```
+
+Repo-specific notes:
+
+- `.secrets.baseline` at the repo root records known false-positive Basic Auth Credentials hits (illustrative URL placeholders like `user:pw@host` in the demo READMEs and docstrings). Always scan with `--baseline .secrets.baseline` so the baseline suppresses these. New secret-shaped strings still raise alerts. To re-baseline after adding more known placeholders, run `uvx detect-secrets scan > .secrets.baseline`.
+- `pip-audit` will not run against `requirements.txt` directly because the deps use `>=` constraints rather than exact pins or hashes. Run it without arguments (`uvx pip-audit`) to audit the active Python environment instead — that's where the deps are actually installed via `pip install -r requirements.txt`.
+
 ## Project memory
 
 Project-scoped notes (e.g. planned demos roadmap) live in `~/.claude/projects/-Users-richard-projects-python-db/memory/`. Read `MEMORY.md` there for context on what's planned next.
