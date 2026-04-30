@@ -19,6 +19,7 @@ Usage
     python sqlalchemy_demo.py --backend mssql
     python sqlalchemy_demo.py --url <full-sqlalchemy-url>
     python sqlalchemy_demo.py --echo
+    python sqlalchemy_demo.py --backend mssql --probe
 
 Parameters
 ----------
@@ -42,6 +43,13 @@ Parameters
   --echo
         Print the generated SQL to stderr. Helpful for understanding what
         SQLAlchemy compiles your Python expressions into.
+
+  --probe
+        Non-invasive connectivity check: connect, run SELECT 1, and report
+        the dialect, driver, and server version. No DDL, no inserts.
+        Useful for sanity-checking a connection (especially against shared
+        databases like Azure SQL MI) before letting the full demo create
+        a table and append rows.
 
 Environment
 -----------
@@ -134,6 +142,20 @@ def build_url(backend: str, memory: bool, url_override: str | None) -> str:
     raise ValueError(f"Unknown backend: {backend}")
 
 
+def probe(engine: Engine) -> None:
+    """Non-invasive connectivity check. Runs SELECT 1 and reports server info."""
+    with engine.connect() as conn:
+        ping = conn.execute(select(1)).scalar_one()
+
+    version_info = engine.dialect.server_version_info
+    version = ".".join(str(p) for p in version_info) if version_info else "unknown"
+
+    print_table(
+        [(engine.dialect.name, engine.driver, version, ping)],
+        ["dialect", "driver", "server_version", "ping"],
+    )
+
+
 def setup_schema(engine: Engine) -> None:
     metadata.create_all(engine)
     log.info("Schema ready.")
@@ -184,6 +206,11 @@ def main() -> None:
         action="store_true",
         help="Print generated SQL to stderr.",
     )
+    parser.add_argument(
+        "--probe",
+        action="store_true",
+        help="Non-invasive connectivity check (SELECT 1 + server info). Skips DDL and inserts.",
+    )
     args = parser.parse_args()
 
     url = build_url(args.backend, args.memory, args.url)
@@ -195,6 +222,13 @@ def main() -> None:
 
     try:
         engine = create_engine(url, future=True)
+
+        if args.probe:
+            log.info("Probing connection (no DDL, no inserts)…")
+            probe(engine)
+            report_result("SQLAlchemy probe", passed=True)
+            return
+
         setup_schema(engine)
         insert_sample_data(engine)
 
@@ -210,7 +244,8 @@ def main() -> None:
         report_result("SQLAlchemy demo", passed=True)
 
     except SQLAlchemyError as exc:
-        report_result("SQLAlchemy demo", passed=False, detail=str(exc))
+        label = "SQLAlchemy probe" if args.probe else "SQLAlchemy demo"
+        report_result(label, passed=False, detail=str(exc))
         sys.exit(1)
 
 

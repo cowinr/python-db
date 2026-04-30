@@ -100,6 +100,7 @@ Notes:
 - The driver name in the query string must match an installed ODBC driver exactly. Spaces become `+` in the URL.
 - For Entra Integrated to work on macOS, your machine must already be signed in via the Microsoft Entra tooling. If you want token-based auth (e.g. service principal, managed identity, interactive device code) instead, see the dedicated `demos/azure_sql_mi/` demo, which uses raw `pyodbc` and is easier to extend in that direction.
 - Re-running the demo will append rows to the `products` table on a real database. Either pre-create a throwaway database, or drop the table between runs.
+- Sanity-check the connection first with `--probe` (see below). It runs `SELECT 1` and reports the server version without creating tables or inserting rows. Recommended for any shared database.
 
 ## Usage
 
@@ -138,6 +139,28 @@ Show the SQL that SQLAlchemy generates from the Python expressions:
 
 ```bash
 python sqlalchemy_demo.py --echo
+```
+
+Non-invasive connectivity check (no DDL, no inserts):
+
+```bash
+python sqlalchemy_demo.py --backend mssql --probe
+```
+
+`--probe` connects, runs `SELECT 1`, and prints the dialect, driver, and server version. The full demo creates a `products` table and inserts four rows on every run, which is fine for SQLite and the Docker test servers but not what you want when first pointing the demo at a shared database like Azure SQL MI. Use `--probe` to confirm the URL, auth, and network path are working before letting the full flow touch the schema.
+
+Sample probe output (against in-memory SQLite):
+
+```log
+2026-04-30 10:00:00,000 [INFO] Backend: sqlite
+2026-04-30 10:00:00,000 [INFO] Driver: sqlite
+2026-04-30 10:00:00,001 [INFO] Probing connection (no DDL, no inserts)…
+
+  dialect                 driver                  server_version          ping
+  ----------------------  ----------------------  ----------------------  ----------------------
+  sqlite                  pysqlite                3.51.0                  1
+
+2026-04-30 10:00:00,002 [INFO] SQLAlchemy probe: PASSED
 ```
 
 ## SQLAlchemy URL format
