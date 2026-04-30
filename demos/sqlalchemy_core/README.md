@@ -80,11 +80,14 @@ brew install msodbcsql18
 
 Then build a URL with one of the two common auth shapes.
 
-**Microsoft Entra integrated auth** (uses your existing Entra session, no credentials in the URL):
+**Microsoft Entra integrated auth** (uses your existing Entra session, **dummy** credentials in the URL):
+
+> [!important]
+> You must use **dummy** credentials in the URL to prevent SQLAlchemy from appending `Integrated Security=SSPI` when the URL has no username/password. When `DATABASE_URL` also contains `Authentication=ActiveDirectoryIntegrated`, ODBC gets both and refuses.
 
 ```bash
-export DATABASE_URL="mssql+pyodbc://@your-instance.xxxxxxxx.database.windows.net/your_db?driver=ODBC+Driver+18+for+SQL+Server&Authentication=ActiveDirectoryIntegrated&Encrypt=yes&TrustServerCertificate=no"
-python sqlalchemy_demo.py --backend mssql
+export DATABASE_URL="mssql+pyodbc://dummy@your-instance.xxxxxxxx.database.windows.net/your_db?driver=ODBC+Driver+18+for+SQL+Server&Authentication=ActiveDirectoryIntegrated&Encrypt=yes&TrustServerCertificate=no"
+python sqlalchemy_demo.py --backend mssql --probe
 ```
 
 **SQL authentication** (username and password in the URL — be careful with shell history):
