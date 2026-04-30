@@ -28,25 +28,27 @@ Prerequisites
 
 Usage
 -----
-    python azure_sql_mi_demo.py
-    python azure_sql_mi_demo.py --auth sql
+    uv run demos/azure_sql_mi/azure_sql_mi_demo.py
+    uv run demos/azure_sql_mi/azure_sql_mi_demo.py --auth sql
 """
 
 from __future__ import annotations
 
-import argparse
 import getpass
 import logging
 import sys
+from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
+from typing import Annotated
+
+import config
+import defaults
+import pyodbc
+import typer
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from shared.runner import print_table, report_result
-
-import pyodbc
-
-from defaults import *  # noqa: F401,F403 — intentional wildcard import for config layering
-from config import *    # noqa: F401,F403
+from shared.runner import print_table, report_result  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -55,38 +57,59 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 
-def _build_conn_str(auth: str, username: str | None, password: str | None) -> str:
+class AuthMode(StrEnum):
+    integrated = "integrated"
+    sql = "sql"
+
+
+@dataclass(frozen=True)
+class DemoConfig:
+    server: str
+    database: str
+    odbc_driver: str
+
+
+def load_config() -> DemoConfig:
+    """Layer config.py over defaults.py without importing names into the module namespace."""
+    return DemoConfig(
+        server=config.SERVER,
+        database=config.DATABASE,
+        odbc_driver=getattr(config, "ODBC_DRIVER", defaults.ODBC_DRIVER),
+    )
+
+
+def _build_conn_str(
+    cfg: DemoConfig, auth: AuthMode, username: str | None, password: str | None
+) -> str:
     base = (
-        f"Driver={{{ODBC_DRIVER}}};"
-        f"Server={SERVER};"
-        f"Database={DATABASE};"
+        f"Driver={{{cfg.odbc_driver}}};"
+        f"Server={cfg.server};"
+        f"Database={cfg.database};"
         "Encrypt=yes;"
         "TrustServerCertificate=no;"
     )
-    if auth == "sql":
+    if auth is AuthMode.sql:
         return base + f"UID={username};PWD={password};"
     return base + "Authentication=ActiveDirectoryIntegrated;"
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Test Azure SQL Managed Instance connectivity.")
-    parser.add_argument(
-        "--auth",
-        choices=["integrated", "sql"],
-        default="integrated",
-        help="Authentication mode (default: integrated).",
-    )
-    args = parser.parse_args()
+def main(
+    auth: Annotated[
+        AuthMode, typer.Option(help="Authentication mode.")
+    ] = AuthMode.integrated,
+) -> None:
+    """Test Azure SQL Managed Instance connectivity."""
+    cfg = load_config()
 
     username: str | None = None
     password: str | None = None
 
-    if args.auth == "sql":
+    if auth is AuthMode.sql:
         username = input("SQL username: ").strip()
         password = getpass.getpass("SQL password: ")
 
-    conn_str = _build_conn_str(args.auth, username, password)
-    log.info("Connecting to %s / %s using %s auth…", SERVER, DATABASE, args.auth)
+    conn_str = _build_conn_str(cfg, auth, username, password)
+    log.info("Connecting to %s / %s using %s auth…", cfg.server, cfg.database, auth.value)
 
     try:
         with pyodbc.connect(conn_str, timeout=15) as conn:
@@ -104,8 +127,8 @@ def main() -> None:
 
     except pyodbc.Error as exc:
         report_result("Connection test", passed=False, detail=str(exc))
-        sys.exit(1)
+        raise typer.Exit(code=1) from exc
 
 
 if __name__ == "__main__":
-    main()
+    typer.run(main)

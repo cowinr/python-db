@@ -104,7 +104,10 @@ def main() -> None:
     parser.add_argument(
         "--db-path",
         default="demo.db",
-        help="Path to the SQLite .db file, or ':memory:' for a transient database (default: ./demo.db).",
+        help=(
+            "Path to the SQLite .db file, or ':memory:' for a transient "
+            "database (default: ./demo.db)."
+        ),
     )
     args = parser.parse_args()
 

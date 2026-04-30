@@ -18,7 +18,7 @@
 # Usage:
 #   ./start-postgres.sh
 #   source .demo-postgres.env
-#   python sqlalchemy_demo.py --backend postgres
+#   uv run sqlalchemy_demo.py --backend postgres
 #
 # Requires: docker, openssl
 
@@ -73,7 +73,7 @@ echo
 echo "To run the demo against this database:"
 echo
 echo "  source $(basename "${ENV_FILE}")"
-echo "  python sqlalchemy_demo.py --backend postgres"
+echo "  uv run sqlalchemy_demo.py --backend postgres"
 echo
 echo "When finished, stop and remove the container with:"
 echo

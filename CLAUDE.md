@@ -9,19 +9,21 @@ A collection of self-contained Python database connectivity demos, ranging from 
 ## Commands
 
 ```bash
-pip install -r requirements.txt
+uv sync
 
-python demos/sqlite_local/sqlite_demo.py
-python demos/sqlite_local/sqlite_demo.py --db-path :memory:
+uv run demos/sqlite_local/sqlite_demo.py
+uv run demos/sqlite_local/sqlite_demo.py --db-path :memory:
 
-python demos/sqlalchemy_core/sqlalchemy_demo.py
-python demos/sqlalchemy_core/sqlalchemy_demo.py --backend sqlite --memory
-python demos/sqlalchemy_core/sqlalchemy_demo.py --echo
-DATABASE_URL=postgresql+psycopg2://... python demos/sqlalchemy_core/sqlalchemy_demo.py --backend postgres
+uv run demos/sqlalchemy_core/sqlalchemy_demo.py
+uv run demos/sqlalchemy_core/sqlalchemy_demo.py --backend sqlite --memory
+uv run demos/sqlalchemy_core/sqlalchemy_demo.py --echo
+DATABASE_URL=postgresql+psycopg2://... uv run demos/sqlalchemy_core/sqlalchemy_demo.py --backend postgres
 
-python demos/azure_sql_mi/azure_sql_mi_demo.py
-python demos/azure_sql_mi/azure_sql_mi_demo.py --auth sql
+uv run demos/azure_sql_mi/azure_sql_mi_demo.py
+uv run demos/azure_sql_mi/azure_sql_mi_demo.py --auth sql
 ```
+
+The SQLite demo is stdlib-only and can also be run with plain `python demos/sqlite_local/sqlite_demo.py` outside the uv environment.
 
 The Azure SQL MI demo also requires `demos/azure_sql_mi/config.py` (copy from `config.example.py`); it is gitignored.
 
@@ -52,11 +54,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from shared.runner import print_table, report_result
 ```
 
-`parents[2]` resolves the repo root regardless of where the demo is invoked from. This is intentional rather than a packaging shortcut: the demos are deliberately runnable as standalone scripts (`python demos/.../demo.py`) without `pip install -e .`.
+`parents[2]` resolves the repo root regardless of where the demo is invoked from. This is intentional rather than a packaging shortcut: the demos are deliberately runnable as standalone scripts (`uv run demos/.../demo.py`, or plain `python` for the stdlib-only SQLite demo) without `pip install -e .`.
 
 ### Dependencies
 
-A single root `requirements.txt` lists deps grouped by demo with comments. All declared deps are real installs (no commented-out hints) so a fresh `pip install -r requirements.txt` leaves every backend usable.
+The root `pyproject.toml` declares all third-party deps with explicit upper-version pins. `uv.lock` is checked in so `uv sync` produces a reproducible environment. Tooling defaults (ruff line length, target Python version, lint rule set) live under `[tool.ruff]` in the same file. There is no `requirements.txt`.
 
 ### Test-server scripts
 
@@ -80,6 +82,7 @@ When adding a new demo, preserve these:
 - Use the shared runner for all tabular output
 - Pull credentials from environment variables or a gitignored `config.py`, never hardcode
 - Use parameterised queries everywhere (driver-level `?` for raw drivers, expression language for SQLAlchemy)
+- Use `typer` for CLI parsing in demos that already pull in third-party deps (`sqlalchemy_demo.py`, `azure_sql_mi_demo.py`). The SQLite demo is stdlib-only by design and uses `argparse`; do not add `typer` to it.
 
 ## Security checks
 
@@ -95,7 +98,7 @@ uvx pip-audit
 Repo-specific notes:
 
 - `.secrets.baseline` at the repo root records known false-positive Basic Auth Credentials hits (illustrative URL placeholders like `user:pw@host` in the demo READMEs and docstrings). Always scan with `--baseline .secrets.baseline` so the baseline suppresses these. New secret-shaped strings still raise alerts. To re-baseline after adding more known placeholders, run `uvx detect-secrets scan > .secrets.baseline`.
-- `pip-audit` will not run against `requirements.txt` directly because the deps use `>=` constraints rather than exact pins or hashes. Run it without arguments (`uvx pip-audit`) to audit the active Python environment instead — that's where the deps are actually installed via `pip install -r requirements.txt`.
+- `pip-audit` runs cleanly against the resolved environment after `uv sync`. Either run `uv run pip-audit` (against the project's `.venv`) or `uvx pip-audit` (against the ambient interpreter). Avoid pointing it at the lockfile directly; it expects exact pins or hashes, and the lockfile is already what `uv sync` resolves from.
 
 ## Project memory
 

@@ -14,25 +14,26 @@ This is the baseline demo — the simplest possible database interaction in Pyth
 
 ## Prerequisites
 
-Python 3.9 or later. No third-party packages required — `sqlite3` is part of the standard library.
+Python 3.13 or later. No third-party packages required — `sqlite3` is part of the standard library, and this demo deliberately uses stdlib `argparse` to avoid pulling in any other dependencies.
 
 ## Usage
 
-Run from this directory:
+Run from this directory with plain `python`, or from the repo root via `uv run`:
 
-```
+```bash
 python sqlite_demo.py
+uv run demos/sqlite_local/sqlite_demo.py
 ```
 
 Use a custom database file path:
 
-```
+```bash
 python sqlite_demo.py --db-path /tmp/my_test.db
 ```
 
 Use an in-memory database (discarded on exit — useful for testing):
 
-```
+```bash
 python sqlite_demo.py --db-path :memory:
 ```
 

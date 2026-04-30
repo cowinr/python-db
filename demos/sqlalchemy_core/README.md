@@ -14,13 +14,13 @@ This is the headline argument for SQLAlchemy over a raw driver: portable, pooled
 
 ## Prerequisites
 
-Python 3.9 or later, plus SQLAlchemy and the optional backend drivers:
+Python 3.13 or later, plus SQLAlchemy, typer, and the optional backend drivers. From the repo root:
 
 ```bash
-pip install -r ../../requirements.txt
+uv sync
 ```
 
-The root `requirements.txt` includes `psycopg2-binary` (PostgreSQL), `pymysql` (MySQL / MariaDB), and `pyodbc` (SQL Server / Azure SQL MI), so all four backends work out of the box. The `pyodbc` install also requires the Microsoft ODBC Driver for SQL Server (17 or 18) on the host.
+The root `pyproject.toml` declares `psycopg2-binary` (PostgreSQL), `pymysql` (MySQL / MariaDB), and `pyodbc` (SQL Server / Azure SQL MI) as project dependencies, so all four backends work out of the box. The `pyodbc` install also requires the Microsoft ODBC Driver for SQL Server (17 or 18) on the host.
 
 ## Setting up a test database
 
@@ -31,7 +31,7 @@ The SQLite backend works out of the box and needs no setup. PostgreSQL and MySQL
 ```bash
 ./start-postgres.sh
 source .demo-postgres.env
-python sqlalchemy_demo.py --backend postgres
+uv run sqlalchemy_demo.py --backend postgres
 ./stop-postgres.sh
 ```
 
@@ -47,7 +47,7 @@ If you have Postgres installed via Homebrew and want a long-lived local server:
 brew services start postgresql@17
 
 export DATABASE_URL="postgresql+psycopg2://$USER@localhost:5432/postgres"
-python sqlalchemy_demo.py --backend postgres
+uv run sqlalchemy_demo.py --backend postgres
 
 brew services stop postgresql@17
 ```
@@ -59,7 +59,7 @@ If the default `postgres` database does not exist, create one with `createdb dem
 ```bash
 ./start-mysql.sh
 source .demo-mysql.env
-python sqlalchemy_demo.py --backend mysql
+uv run sqlalchemy_demo.py --backend mysql
 ./stop-mysql.sh
 ```
 
@@ -87,14 +87,14 @@ Then build a URL with one of the two common auth shapes.
 
 ```bash
 export DATABASE_URL="mssql+pyodbc://dummy@your-instance.xxxxxxxx.database.windows.net/your_db?driver=ODBC+Driver+18+for+SQL+Server&Authentication=ActiveDirectoryIntegrated&Encrypt=yes&TrustServerCertificate=no"
-python sqlalchemy_demo.py --backend mssql --probe
+uv run sqlalchemy_demo.py --backend mssql --probe
 ```
 
 **SQL authentication** (username and password in the URL — be careful with shell history):
 
 ```bash
 export DATABASE_URL="mssql+pyodbc://USER:PASSWORD@your-instance.xxxxxxxx.database.windows.net/your_db?driver=ODBC+Driver+18+for+SQL+Server&Encrypt=yes&TrustServerCertificate=no"
-python sqlalchemy_demo.py --backend mssql
+uv run sqlalchemy_demo.py --backend mssql
 ```
 
 Notes:
@@ -110,44 +110,44 @@ Notes:
 Default (SQLite, file-backed):
 
 ```bash
-python sqlalchemy_demo.py
+uv run sqlalchemy_demo.py
 ```
 
 In-memory SQLite (transient, no file written):
 
 ```bash
-python sqlalchemy_demo.py --backend sqlite --memory
+uv run sqlalchemy_demo.py --backend sqlite --memory
 ```
 
 PostgreSQL, MySQL, or SQL Server / Azure SQL MI (set DATABASE_URL first):
 
 ```bash
 export DATABASE_URL="postgresql+psycopg2://user:pw@host:5432/dbname"
-python sqlalchemy_demo.py --backend postgres
+uv run sqlalchemy_demo.py --backend postgres
 
 export DATABASE_URL="mysql+pymysql://user:pw@host:3306/dbname"
-python sqlalchemy_demo.py --backend mysql
+uv run sqlalchemy_demo.py --backend mysql
 
 export DATABASE_URL="mssql+pyodbc://@host/dbname?driver=ODBC+Driver+18+for+SQL+Server&Authentication=ActiveDirectoryIntegrated"
-python sqlalchemy_demo.py --backend mssql
+uv run sqlalchemy_demo.py --backend mssql
 ```
 
 Override the URL directly (any SQLAlchemy-supported backend):
 
 ```bash
-python sqlalchemy_demo.py --url sqlite:///custom.db
+uv run sqlalchemy_demo.py --url sqlite:///custom.db
 ```
 
 Show the SQL that SQLAlchemy generates from the Python expressions:
 
 ```bash
-python sqlalchemy_demo.py --echo
+uv run sqlalchemy_demo.py --echo
 ```
 
 Non-invasive connectivity check (no DDL, no inserts) against MS SQL database (e.g. Azure MI SQL):
 
 ```bash
-python sqlalchemy_demo.py --backend mssql --probe
+uv run sqlalchemy_demo.py --backend mssql --probe
 ```
 
 `--probe` connects, runs `SELECT 1`, and prints the dialect, driver, and server version. The full demo creates a `products` table and inserts four rows on every run, which is fine for SQLite and the Docker test servers but not what you want when first pointing the demo at a shared database like Azure SQL MI. Use `--probe` to confirm the URL, auth, and network path are working before letting the full flow touch the schema.

@@ -23,7 +23,7 @@
 # Usage:
 #   ./start-mysql.sh
 #   source .demo-mysql.env
-#   python sqlalchemy_demo.py --backend mysql
+#   uv run sqlalchemy_demo.py --backend mysql
 #
 # Requires: docker, openssl
 
@@ -80,7 +80,7 @@ echo
 echo "To run the demo against this database:"
 echo
 echo "  source $(basename "${ENV_FILE}")"
-echo "  python sqlalchemy_demo.py --backend mysql"
+echo "  uv run sqlalchemy_demo.py --backend mysql"
 echo
 echo "When finished, stop and remove the container with:"
 echo

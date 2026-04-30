@@ -21,6 +21,8 @@
     "pyodbc",
     "sqlalchemy",
     "Starlette",
-    "stdlib"
+    "stdlib",
+    "typer",
+    "uvicorn"
   ]
 }

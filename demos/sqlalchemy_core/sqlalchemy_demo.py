@@ -12,18 +12,18 @@ access with a Pythonic query language.
 
 Usage
 -----
-    python sqlalchemy_demo.py
-    python sqlalchemy_demo.py --backend sqlite --memory
-    python sqlalchemy_demo.py --backend postgres
-    python sqlalchemy_demo.py --backend mysql
-    python sqlalchemy_demo.py --backend mssql
-    python sqlalchemy_demo.py --url <full-sqlalchemy-url>
-    python sqlalchemy_demo.py --echo
-    python sqlalchemy_demo.py --backend mssql --probe
+    uv run demos/sqlalchemy_core/sqlalchemy_demo.py
+    uv run demos/sqlalchemy_core/sqlalchemy_demo.py --backend sqlite --memory
+    uv run demos/sqlalchemy_core/sqlalchemy_demo.py --backend postgres
+    uv run demos/sqlalchemy_core/sqlalchemy_demo.py --backend mysql
+    uv run demos/sqlalchemy_core/sqlalchemy_demo.py --backend mssql
+    uv run demos/sqlalchemy_core/sqlalchemy_demo.py --url <full-sqlalchemy-url>
+    uv run demos/sqlalchemy_core/sqlalchemy_demo.py --echo
+    uv run demos/sqlalchemy_core/sqlalchemy_demo.py --backend mssql --probe
 
 Parameters
 ----------
-  --backend {sqlite,postgres,mysql,mssql}
+  --backend [sqlite|postgres|mysql|mssql]
         Which backend to connect to (default: sqlite).
         For sqlite, a local file ./sqlalchemy_demo.db is used unless
         --memory is also passed.
@@ -58,26 +58,18 @@ Environment
                   mysql+pymysql://user:pw@host:3306/dbname
                   mssql+pyodbc://user:pw@host/dbname?driver=ODBC+Driver+18+for+SQL+Server
                   mssql+pyodbc://@host/dbname?driver=ODBC+Driver+18+for+SQL+Server&Authentication=ActiveDirectoryIntegrated
-
-Optional dependencies
----------------------
-  Postgres backend:  pip install psycopg2-binary
-  MySQL backend:     pip install pymysql
-  MSSQL  backend:    pip install pyodbc, plus the Microsoft ODBC Driver
-                     for SQL Server (17 or 18) installed on the host.
 """
 
 from __future__ import annotations
 
-import argparse
 import logging
 import os
 import sys
+from enum import StrEnum
 from pathlib import Path
+from typing import Annotated
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from shared.runner import print_table, report_result
-
+import typer
 from sqlalchemy import (
     Column,
     DateTime,
@@ -94,11 +86,22 @@ from sqlalchemy import (
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from shared.runner import print_table, report_result  # noqa: E402
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
 )
 log = logging.getLogger(__name__)
+
+
+class Backend(StrEnum):
+    sqlite = "sqlite"
+    postgres = "postgres"
+    mysql = "mysql"
+    mssql = "mssql"
+
 
 SAMPLE_PRODUCTS: list[dict] = [
     {"name": "Widget A", "price_gbp": 9.99},
@@ -119,27 +122,26 @@ products = Table(
 )
 
 
-def build_url(backend: str, memory: bool, url_override: str | None) -> str:
+def build_url(backend: Backend, memory: bool, url_override: str | None) -> str:
     """Resolve the SQLAlchemy connection URL from CLI flags and environment."""
     if url_override:
         return url_override
 
-    if backend == "sqlite":
+    if backend is Backend.sqlite:
         if memory:
             return "sqlite:///:memory:"
         db_file = Path.cwd() / "sqlalchemy_demo.db"
         return f"sqlite:///{db_file}"
 
-    if backend in ("postgres", "mysql", "mssql"):
-        url = os.environ.get("DATABASE_URL")
-        if not url:
-            raise SystemExit(
-                f"Backend '{backend}' requires the DATABASE_URL environment "
-                f"variable to be set to a full SQLAlchemy URL."
-            )
-        return url
-
-    raise ValueError(f"Unknown backend: {backend}")
+    url = os.environ.get("DATABASE_URL")
+    if not url:
+        log.error(
+            "Backend '%s' requires the DATABASE_URL environment variable to be set "
+            "to a full SQLAlchemy URL.",
+            backend.value,
+        )
+        raise typer.Exit(code=1)
+    return url
 
 
 def probe(engine: Engine) -> None:
@@ -183,47 +185,44 @@ def query_by_max_price(engine: Engine, max_price: float) -> list:
         return conn.execute(statement).all()
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="SQLAlchemy Core backend-agnostic demo.")
-    parser.add_argument(
-        "--backend",
-        choices=["sqlite", "postgres", "mysql", "mssql"],
-        default="sqlite",
-        help="Which backend to connect to (default: sqlite).",
-    )
-    parser.add_argument(
-        "--memory",
-        action="store_true",
-        help="Use an in-memory SQLite database (only valid with --backend sqlite).",
-    )
-    parser.add_argument(
-        "--url",
-        default=None,
-        help="Override the connection URL entirely (takes precedence over --backend).",
-    )
-    parser.add_argument(
-        "--echo",
-        action="store_true",
-        help="Print generated SQL to stderr.",
-    )
-    parser.add_argument(
-        "--probe",
-        action="store_true",
-        help="Non-invasive connectivity check (SELECT 1 + server info). Skips DDL and inserts.",
-    )
-    args = parser.parse_args()
+def main(
+    backend: Annotated[
+        Backend, typer.Option(help="Which backend to connect to.")
+    ] = Backend.sqlite,
+    memory: Annotated[
+        bool,
+        typer.Option(help="Use an in-memory SQLite database (only valid with --backend sqlite)."),
+    ] = False,
+    url: Annotated[
+        str | None,
+        typer.Option(
+            help="Override the connection URL entirely (takes precedence over --backend).",
+        ),
+    ] = None,
+    echo: Annotated[
+        bool, typer.Option(help="Print generated SQL to stderr.")
+    ] = False,
+    probe_only: Annotated[
+        bool,
+        typer.Option(
+            "--probe",
+            help="Non-invasive connectivity check (SELECT 1 + server info). Skips DDL and inserts.",
+        ),
+    ] = False,
+) -> None:
+    """SQLAlchemy Core backend-agnostic demo."""
+    connection_url = build_url(backend, memory, url)
 
-    url = build_url(args.backend, args.memory, args.url)
-    log.info("Backend: %s", args.backend if not args.url else "custom")
-    log.info("Driver: %s", url.split(":", 1)[0])
+    log.info("Backend: %s", backend.value if not url else "custom")
+    log.info("Driver: %s", connection_url.split(":", 1)[0])
 
-    if args.echo:
+    if echo:
         logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
     try:
-        engine = create_engine(url, future=True)
+        engine = create_engine(connection_url, future=True)
 
-        if args.probe:
+        if probe_only:
             log.info("Probing connection (no DDL, no inserts)…")
             probe(engine)
             report_result("SQLAlchemy probe", passed=True)
@@ -244,10 +243,10 @@ def main() -> None:
         report_result("SQLAlchemy demo", passed=True)
 
     except SQLAlchemyError as exc:
-        label = "SQLAlchemy probe" if args.probe else "SQLAlchemy demo"
+        label = "SQLAlchemy probe" if probe_only else "SQLAlchemy demo"
         report_result(label, passed=False, detail=str(exc))
-        sys.exit(1)
+        raise typer.Exit(code=1) from exc
 
 
 if __name__ == "__main__":
-    main()
+    typer.run(main)
