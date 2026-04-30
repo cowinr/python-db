@@ -1,4 +1,6 @@
-# Azure SQL MI demo (demos/azure_sql_mi)
+# Azure SQL MI demo (demos/azure_sql_mi) and the mssql backend of the
+# SQLAlchemy Core demo (demos/sqlalchemy_core).
+# Also requires the Microsoft ODBC Driver for SQL Server (17 or 18) on the host.
 pyodbc>=4.0
 
 # SQLAlchemy Core demo (demos/sqlalchemy_core)

@@ -4,10 +4,11 @@ sqlalchemy_demo.py
 Demonstrates SQLAlchemy Core (2.0 style) as a backend-agnostic abstraction
 over a relational database.
 
-The same Python code runs against SQLite, PostgreSQL, or MySQL/MariaDB.
-Only the connection URL changes. This is the headline benefit of using
-SQLAlchemy over a raw driver: portable, pooled, parameterised access with
-a Pythonic query language.
+The same Python code runs against SQLite, PostgreSQL, MySQL/MariaDB, or
+Microsoft SQL Server (including Azure SQL Managed Instance and Azure SQL
+Database). Only the connection URL changes. This is the headline benefit
+of using SQLAlchemy over a raw driver: portable, pooled, parameterised
+access with a Pythonic query language.
 
 Usage
 -----
@@ -15,17 +16,21 @@ Usage
     python sqlalchemy_demo.py --backend sqlite --memory
     python sqlalchemy_demo.py --backend postgres
     python sqlalchemy_demo.py --backend mysql
+    python sqlalchemy_demo.py --backend mssql
     python sqlalchemy_demo.py --url <full-sqlalchemy-url>
     python sqlalchemy_demo.py --echo
 
 Parameters
 ----------
-  --backend {sqlite,postgres,mysql}
+  --backend {sqlite,postgres,mysql,mssql}
         Which backend to connect to (default: sqlite).
         For sqlite, a local file ./sqlalchemy_demo.db is used unless
         --memory is also passed.
-        For postgres or mysql, the DATABASE_URL environment variable
-        must be set to a full SQLAlchemy URL.
+        For postgres, mysql, or mssql, the DATABASE_URL environment
+        variable must be set to a full SQLAlchemy URL. The mssql
+        backend covers on-prem SQL Server, Azure SQL Database, and
+        Azure SQL Managed Instance — the dialect is the same; only
+        the host and auth bits in the URL differ.
 
   --memory
         Use an in-memory SQLite database (only valid with --backend sqlite).
@@ -40,14 +45,18 @@ Parameters
 
 Environment
 -----------
-  DATABASE_URL    Full SQLAlchemy URL for postgres / mysql backends, e.g.
+  DATABASE_URL    Full SQLAlchemy URL for postgres / mysql / mssql backends, e.g.
                   postgresql+psycopg2://user:pw@host:5432/dbname
                   mysql+pymysql://user:pw@host:3306/dbname
+                  mssql+pyodbc://user:pw@host/dbname?driver=ODBC+Driver+18+for+SQL+Server
+                  mssql+pyodbc://@host/dbname?driver=ODBC+Driver+18+for+SQL+Server&Authentication=ActiveDirectoryIntegrated
 
 Optional dependencies
 ---------------------
   Postgres backend:  pip install psycopg2-binary
   MySQL backend:     pip install pymysql
+  MSSQL  backend:    pip install pyodbc, plus the Microsoft ODBC Driver
+                     for SQL Server (17 or 18) installed on the host.
 """
 
 from __future__ import annotations
@@ -113,7 +122,7 @@ def build_url(backend: str, memory: bool, url_override: str | None) -> str:
         db_file = Path.cwd() / "sqlalchemy_demo.db"
         return f"sqlite:///{db_file}"
 
-    if backend in ("postgres", "mysql"):
+    if backend in ("postgres", "mysql", "mssql"):
         url = os.environ.get("DATABASE_URL")
         if not url:
             raise SystemExit(
@@ -156,7 +165,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="SQLAlchemy Core backend-agnostic demo.")
     parser.add_argument(
         "--backend",
-        choices=["sqlite", "postgres", "mysql"],
+        choices=["sqlite", "postgres", "mysql", "mssql"],
         default="sqlite",
         help="Which backend to connect to (default: sqlite).",
     )

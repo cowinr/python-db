@@ -1,6 +1,6 @@
 # SQLAlchemy Core Demo
 
-Demonstrates SQLAlchemy Core (2.0 style) as a backend-agnostic abstraction over a relational database. The same Python code runs against SQLite, PostgreSQL, or MySQL/MariaDB. Only the connection URL changes.
+Demonstrates SQLAlchemy Core (2.0 style) as a backend-agnostic abstraction over a relational database. The same Python code runs against SQLite, PostgreSQL, MySQL/MariaDB, or Microsoft SQL Server (including Azure SQL Managed Instance and Azure SQL Database). Only the connection URL changes.
 
 This is the headline argument for SQLAlchemy over a raw driver: portable, pooled, parameterised access with a Pythonic query language. Compare it with `demos/sqlite_local/` (raw stdlib `sqlite3`) to see the contrast.
 
@@ -20,7 +20,7 @@ Python 3.9 or later, plus SQLAlchemy and the optional backend drivers:
 pip install -r ../../requirements.txt
 ```
 
-The root `requirements.txt` includes `psycopg2-binary` (PostgreSQL) and `pymysql` (MySQL / MariaDB) so all three backends work out of the box.
+The root `requirements.txt` includes `psycopg2-binary` (PostgreSQL), `pymysql` (MySQL / MariaDB), and `pyodbc` (SQL Server / Azure SQL MI), so all four backends work out of the box. The `pyodbc` install also requires the Microsoft ODBC Driver for SQL Server (17 or 18) on the host.
 
 ## Setting up a test database
 
@@ -67,6 +67,40 @@ python sqlalchemy_demo.py --backend mysql
 
 If port 3306 is already in use, stop the conflicting service first or edit `HOST_PORT` in the start script.
 
+### Azure SQL Managed Instance (or Azure SQL DB / on-prem SQL Server)
+
+There is no Docker test-server script for SQL Server here. Point the demo at an existing Azure SQL Managed Instance (or any SQL Server reachable from your machine) by setting `DATABASE_URL` to a `mssql+pyodbc` URL.
+
+The connection requires the Microsoft ODBC Driver for SQL Server (17 or 18) on the host. On macOS:
+
+```bash
+brew tap microsoft/mssql-release https://github.com/Microsoft/homebrew-mssql-release
+brew install msodbcsql18
+```
+
+Then build a URL with one of the two common auth shapes.
+
+**Microsoft Entra integrated auth** (uses your existing Entra session, no credentials in the URL):
+
+```bash
+export DATABASE_URL="mssql+pyodbc://@your-instance.xxxxxxxx.database.windows.net/your_db?driver=ODBC+Driver+18+for+SQL+Server&Authentication=ActiveDirectoryIntegrated&Encrypt=yes&TrustServerCertificate=no"
+python sqlalchemy_demo.py --backend mssql
+```
+
+**SQL authentication** (username and password in the URL — be careful with shell history):
+
+```bash
+export DATABASE_URL="mssql+pyodbc://USER:PASSWORD@your-instance.xxxxxxxx.database.windows.net/your_db?driver=ODBC+Driver+18+for+SQL+Server&Encrypt=yes&TrustServerCertificate=no"
+python sqlalchemy_demo.py --backend mssql
+```
+
+Notes:
+
+- URL-encode any special characters in the password (`@` becomes `%40`, `:` becomes `%3A`, and so on).
+- The driver name in the query string must match an installed ODBC driver exactly. Spaces become `+` in the URL.
+- For Entra Integrated to work on macOS, your machine must already be signed in via the Microsoft Entra tooling. If you want token-based auth (e.g. service principal, managed identity, interactive device code) instead, see the dedicated `demos/azure_sql_mi/` demo, which uses raw `pyodbc` and is easier to extend in that direction.
+- Re-running the demo will append rows to the `products` table on a real database. Either pre-create a throwaway database, or drop the table between runs.
+
 ## Usage
 
 Default (SQLite, file-backed):
@@ -81,7 +115,7 @@ In-memory SQLite (transient, no file written):
 python sqlalchemy_demo.py --backend sqlite --memory
 ```
 
-PostgreSQL or MySQL (set DATABASE_URL first):
+PostgreSQL, MySQL, or SQL Server / Azure SQL MI (set DATABASE_URL first):
 
 ```bash
 export DATABASE_URL="postgresql+psycopg2://user:pw@host:5432/dbname"
@@ -89,6 +123,9 @@ python sqlalchemy_demo.py --backend postgres
 
 export DATABASE_URL="mysql+pymysql://user:pw@host:3306/dbname"
 python sqlalchemy_demo.py --backend mysql
+
+export DATABASE_URL="mssql+pyodbc://@host/dbname?driver=ODBC+Driver+18+for+SQL+Server&Authentication=ActiveDirectoryIntegrated"
+python sqlalchemy_demo.py --backend mssql
 ```
 
 Override the URL directly (any SQLAlchemy-supported backend):
