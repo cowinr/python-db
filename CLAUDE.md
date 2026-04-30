@@ -56,7 +56,20 @@ from shared.runner import print_table, report_result
 
 ### Dependencies
 
-A single root `requirements.txt` lists deps grouped by demo with comments. Optional drivers (e.g. `psycopg2-binary`, `pymysql` for the SQLAlchemy demo's non-SQLite backends) are listed as commented-out hints, installed manually only when needed.
+A single root `requirements.txt` lists deps grouped by demo with comments. All declared deps are real installs (no commented-out hints) so a fresh `pip install -r requirements.txt` leaves every backend usable.
+
+### Test-server scripts
+
+Backends that need a running server (currently Postgres and MySQL in `demos/sqlalchemy_core/`) ship a `start-<backend>.sh` / `stop-<backend>.sh` pair in the demo directory. The convention:
+
+- Run an ephemeral `--rm` Docker container with a fixed name (`python-db-<backend>`)
+- Generate a random password with `openssl rand -hex 16`
+- Write the resulting `DATABASE_URL` into a gitignored `.demo-<backend>.env` file (`umask 077`, perms 0600)
+- User sources that file before invoking the demo
+- Stop script removes the container and the env file
+- Both scripts gate on `docker info > /dev/null 2>&1` so they fail with a clean message when Docker Desktop isn't running
+
+The `*.env` and `*.db` patterns are gitignored at the repo root.
 
 ### Demo invariants
 

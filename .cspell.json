@@ -1,0 +1,26 @@
+{
+  "version": "0.2",
+  "language": "en-GB",
+  "words": [
+    "aiomysql",
+    "aioodbc",
+    "aiosqlite",
+    "asyncmy",
+    "asyncpg",
+    "autoincrement",
+    "createdb",
+    "dbname",
+    "isready",
+    "mysqlclient",
+    "mysqlconnector",
+    "mariadb",
+    "psycopg",
+    "pymongo",
+    "pymssql",
+    "pymysql",
+    "pyodbc",
+    "sqlalchemy",
+    "Starlette",
+    "stdlib"
+  ]
+}
