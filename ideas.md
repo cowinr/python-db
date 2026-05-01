@@ -1,1 +1,4 @@
 - Try out PyTest
+- Try connecting to
+  - Appian MariaDB (careful this is production-only)
+  - Majesco replica

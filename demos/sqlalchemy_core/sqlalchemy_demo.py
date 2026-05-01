@@ -58,6 +58,9 @@ Environment
                   mysql+pymysql://user:pw@host:3306/dbname
                   mssql+pyodbc://user:pw@host/dbname?driver=ODBC+Driver+18+for+SQL+Server
                   mssql+pyodbc://@host/dbname?driver=ODBC+Driver+18+for+SQL+Server&Authentication=ActiveDirectoryIntegrated
+
+                  May also be placed in a .env file in this directory; it is loaded
+                  automatically at startup via python-dotenv.
 """
 
 from __future__ import annotations
@@ -70,6 +73,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+from dotenv import load_dotenv
 from sqlalchemy import (
     Column,
     DateTime,
@@ -88,6 +92,8 @@ from sqlalchemy.exc import SQLAlchemyError
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from shared.runner import print_table, report_result  # noqa: E402
+
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 logging.basicConfig(
     level=logging.INFO,

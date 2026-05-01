@@ -128,7 +128,7 @@ uv run sqlalchemy_demo.py --backend postgres
 export DATABASE_URL="mysql+pymysql://user:pw@host:3306/dbname"
 uv run sqlalchemy_demo.py --backend mysql
 
-export DATABASE_URL="mssql+pyodbc://@host/dbname?driver=ODBC+Driver+18+for+SQL+Server&Authentication=ActiveDirectoryIntegrated"
+export DATABASE_URL="mssql+pyodbc://dummy@host/dbname?driver=ODBC+Driver+18+for+SQL+Server&Authentication=ActiveDirectoryIntegrated"
 uv run sqlalchemy_demo.py --backend mssql
 ```
 
