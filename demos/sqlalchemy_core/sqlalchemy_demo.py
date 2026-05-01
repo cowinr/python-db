@@ -87,7 +87,7 @@ from sqlalchemy import (
     insert,
     select,
 )
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine import Engine, make_url
 from sqlalchemy.exc import SQLAlchemyError
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -226,7 +226,15 @@ def main(
         logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO)
 
     try:
-        engine = create_engine(connection_url, future=True)
+        parsed_url = make_url(connection_url)
+        connect_args: dict = {}
+        if parsed_url.drivername.startswith("mysql") and parsed_url.query.get("ssl"):
+            # PyMySQL expects ssl as a dict, not a string — strip from URL, pass via connect_args
+            parsed_url = parsed_url.set(
+                query={k: v for k, v in parsed_url.query.items() if k != "ssl"}
+            )
+            connect_args["ssl"] = {}
+        engine = create_engine(parsed_url, future=True, connect_args=connect_args)
 
         if probe_only:
             log.info("Probing connection (no DDL, no inserts)…")
