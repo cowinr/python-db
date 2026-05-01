@@ -99,6 +99,21 @@ export DATABASE_URL="mssql+pyodbc://USER:PASSWORD@your-instance.xxxxxxxx.databas
 uv run sqlalchemy_demo.py --backend mssql --probe
 ```
 
+**Using a `.env` file (recommended for SQL auth)**
+
+Rather than exporting credentials in your shell (where they land in history), put them in a `.env` file in this directory. The script loads it automatically at startup.
+
+```bash
+# demos/sqlalchemy_core/.env  — gitignored, never commit this file
+DATABASE_URL="mssql+pyodbc://USER:PASSWORD@your-instance.xxxxxxxx.database.windows.net/your_db?driver=ODBC+Driver+17+for+SQL+Server&Encrypt=yes&TrustServerCertificate=yes"
+```
+
+With the file in place, no `export` is needed:
+
+```bash
+uv run sqlalchemy_demo.py --backend mssql --probe
+```
+
 Notes:
 
 - URL-encode any special characters in the password (`@` becomes `%40`, `:` becomes `%3A`, and so on).
@@ -121,9 +136,10 @@ In-memory SQLite (transient, no file written):
 uv run sqlalchemy_demo.py --backend sqlite --memory
 ```
 
-PostgreSQL, MySQL, or SQL Server / Azure SQL MI (set DATABASE_URL first):
+PostgreSQL, MySQL, or SQL Server / Azure SQL MI — set `DATABASE_URL` via export or a `.env` file:
 
 ```bash
+# Option 1: export in the shell
 export DATABASE_URL="postgresql+psycopg2://user:pw@host:5432/dbname"
 uv run sqlalchemy_demo.py --backend postgres
 
@@ -131,6 +147,12 @@ export DATABASE_URL="mysql+pymysql://user:pw@host:3306/dbname"
 uv run sqlalchemy_demo.py --backend mysql
 
 export DATABASE_URL="mssql+pyodbc://dummy@host/dbname?driver=ODBC+Driver+18+for+SQL+Server&Authentication=ActiveDirectoryIntegrated"
+uv run sqlalchemy_demo.py --backend mssql
+```
+
+```bash
+# Option 2: .env file in this directory (gitignored) — no export needed
+echo 'DATABASE_URL="mssql+pyodbc://USER:PASSWORD@host/dbname?driver=ODBC+Driver+17+for+SQL+Server&Encrypt=yes&TrustServerCertificate=yes"' > .env
 uv run sqlalchemy_demo.py --backend mssql
 ```
 
@@ -232,3 +254,4 @@ Things this demo does not show but you should know about:
 - Re-running the script appends rows if the table already exists. Use `--memory` for a clean slate, or delete `sqlalchemy_demo.db`.
 - The `*.db` pattern is gitignored at the repo root.
 - Generated SQLite, Postgres, and MySQL DDL all differ slightly (autoincrement syntax, default value handling). SQLAlchemy emits the right form for whichever backend you connect to. Use `--echo` to see it.
+- `DATABASE_URL` can be placed in a `.env` file in this directory instead of exported in the shell. The file is gitignored; never commit credentials.
