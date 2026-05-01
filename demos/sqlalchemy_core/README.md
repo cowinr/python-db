@@ -17,8 +17,10 @@ This is the headline argument for SQLAlchemy over a raw driver: portable, pooled
 Python 3.13 or later, plus SQLAlchemy, typer, and the optional backend drivers. From the repo root:
 
 ```bash
-uv sync
+uv sync --native-tls
 ```
+
+*The `--native-tls` flag tells `uv` to use Windows' own TLS stack*
 
 The root `pyproject.toml` declares `psycopg2-binary` (PostgreSQL), `pymysql` (MySQL / MariaDB), and `pyodbc` (SQL Server / Azure SQL MI) as project dependencies, so all four backends work out of the box. The `pyodbc` install also requires the Microsoft ODBC Driver for SQL Server (17 or 18) on the host.
 
@@ -94,7 +96,7 @@ uv run sqlalchemy_demo.py --backend mssql --probe
 
 ```bash
 export DATABASE_URL="mssql+pyodbc://USER:PASSWORD@your-instance.xxxxxxxx.database.windows.net/your_db?driver=ODBC+Driver+18+for+SQL+Server&Encrypt=yes&TrustServerCertificate=no"
-uv run sqlalchemy_demo.py --backend mssql
+uv run sqlalchemy_demo.py --backend mssql --probe
 ```
 
 Notes:

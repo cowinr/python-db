@@ -20,7 +20,8 @@ python-db/
 Install [uv](https://docs.astral.sh/uv/) once if you haven't already:
 
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
+echo "ssl-no-revoke" >> ~/.curlrc
+curl -LsSf --ssl-no-revoke https://astral.sh/uv/install.sh | sh
 ```
 
 Then resolve and install the project's dependencies into a local virtual environment:
